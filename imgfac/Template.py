@@ -44,6 +44,26 @@ class Template(object):
     def os_arch(self):
         """The property os_arch"""
         return self._content_at_path('/template/os/arch')
+    @property
+    def install_type(self):
+        """The type of install ('url' or 'iso')"""
+        result = self._content_at_path('/template/os/install')
+        if result:
+            result[0].get('type')
+        else:
+            return None
+    @property
+    def install_url(self):
+        """OS install URL"""
+        return self._content_at_path('/template/os/install/url')
+    @property
+    def install_iso(self):
+        """OS install ISO"""
+        return self._content_at_path('/template/os/install/iso')
+    @property
+    def install_location(self):
+        """Either OS install URL or ISO"""
+        return self._content_at_path('/template/os/install/%s' % self.install_type)
 
     def __repr__(self):
         if(self.xml):
