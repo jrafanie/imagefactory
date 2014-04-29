@@ -21,8 +21,9 @@ from Notification import Notification
 from NotificationCenter import NotificationCenter
 
 
-METADATA =  ( 'identifier', 'data', 'template', 'icicle', 'status_detail', 'status', 'percent_complete', 'parameters' )
-STATUS_STRINGS = ('NEW','PENDING', 'BUILDING', 'COMPLETE', 'FAILED', 'DELETING', 'DELETED', 'DELETEFAILED')
+METADATA = ('identifier', 'data', 'template', 'icicle', 'status_detail', 'status', 'percent_complete', 'parameters',
+            'properties')
+STATUS_STRINGS = ('NEW', 'PENDING', 'BUILDING', 'COMPLETE', 'FAILED', 'DELETING', 'DELETED', 'DELETEFAILED')
 NOTIFICATIONS = ('image.status', 'image.percentage')
 
 
@@ -36,8 +37,10 @@ class PersistentImage(object):
     template = prop("_template")
     icicle = prop("_icicle")
     status_detail = prop("_status_detail")
+    parameters = prop("_parameters")
+    properties = prop("_properties")
 
-    def status():
+    def status(self):
         doc = "A string value."
         def fget(self):
             return self._status
@@ -60,7 +63,7 @@ class PersistentImage(object):
         return locals()
     status = property(**status())
 
-    def percent_complete():
+    def percent_complete(self):
         doc = "The percentage through an operation."
         def fget(self):
             return self._percent_complete
@@ -92,12 +95,13 @@ class PersistentImage(object):
         #   what it is that the plugin operating on this image is doing at any given time.
         # 'error' should remain None unless an exception or other fatal error has occurred.  Error may
         #   be a multiline string
-        self.status_detail = { 'activity': 'Initializing image prior to Cloud/OS customization', 'error':None }
+        self.status_detail = {'activity': 'Initializing image prior to Cloud/OS customization', 'error': None}
         # Setting these to None or setting initial value via the properties breaks the prop code above
         self._status = "NEW"
         self._percent_complete = 0
         self.icicle = None
-        self.parameters = { }
+        self.parameters = {}
+        self.properties = {}
 
     def metadata(self):
         self.log.debug("Executing metadata in class (%s) my metadata is (%s)" % (self.__class__, METADATA))

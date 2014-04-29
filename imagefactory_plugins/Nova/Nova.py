@@ -17,8 +17,11 @@ import logging
 import zope
 from imgfac.ApplicationConfiguration import ApplicationConfiguration
 from imgfac.OSDelegate import OSDelegate
+from imgfac.ImageFactoryException import ImageFactoryException
 from novaimagebuilder.Builder import Builder as NIB
 from novaimagebuilder.StackEnvironment import StackEnvironment
+
+PROPERTY_NAME_GLANCE_ID = 'x-image-properties-glance_id'
 
 
 class Nova(object):
@@ -69,9 +72,11 @@ class Nova(object):
 
         os_image_id = self.nib.wait_for_completion(180)
         if os_image_id:
-            #TODO: set this somewhere else on the image, otherwise we mismatch the id with names/paths for the pim
-            builder.base_image.identifier = os_image_id
-
+            builder.base_image.properties[PROPERTY_NAME_GLANCE_ID] = os_image_id
+        else:
+            exc_msg = 'Nova Image Builder failed to return a Glance ID, failing...'
+            self.log.exception(exc_msg)
+            raise ImageFactoryException(exc_msg)
 
     def create_target_image(self, builder, target, base_image, parameters):
         #self.log.info('create_target_image() called for Nova plugin - creating a TargetImage')
