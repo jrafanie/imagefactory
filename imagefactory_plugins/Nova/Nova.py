@@ -91,7 +91,7 @@ class Nova(object):
         base_img_path = base_image.data
         target_img_path = builder.target_image.data
 
-        builder.target_image.update(5, 'PENDING', 'Copying base image...')
+        builder.target_image.update(status='PENDING', detail='Copying base image...')
         if os.path.exists(base_img_path) and os.path.getsize(base_img_path):
             try:
                 shutil.copyfile(base_img_path, target_img_path)
