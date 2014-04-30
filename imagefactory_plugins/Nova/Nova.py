@@ -15,6 +15,8 @@
 
 import logging
 import zope
+import os.path
+import shutil
 from imgfac.ApplicationConfiguration import ApplicationConfiguration
 from imgfac.OSDelegate import OSDelegate
 from imgfac.ImageFactoryException import ImageFactoryException
@@ -43,10 +45,11 @@ class Nova(object):
     def create_base_image(self, builder, template, parameters):
         self.log.info('create_base_image() called for Nova plugin - creating a BaseImage')
 
-        self.log.debug('builder set to %s' % builder)
+        self.log.debug('Nova.create_base_image() called by builder (%s)' % builder)
         parameters = parameters if parameters else {}
         self.log.debug('parameters set to %s' % parameters)
 
+        builder.base_image.update(5, 'PENDING', 'Collecting build arguments to pass to Nova Image Builder...')
         # Derive the OSInfo OS short_id from the os_name and os_version in template
         if template.os_version:
             if template.os_name[-1].isdigit():
@@ -67,25 +70,40 @@ class Nova(object):
                           'storage': parameters.get('storage'),
                           'name': template.name}
 
+        builder.base_image.update(10, 'BUILDING', 'Created Nova Image Builder instance...')
         self.nib = NIB(install_os, install_location, install_type, install_script, install_config)
         self.nib.run()
 
+        builder.base_image.update(10, 'BUILDING', 'Waiting for Nova Image Builder to complete...')
         os_image_id = self.nib.wait_for_completion(180)
         if os_image_id:
             builder.base_image.properties[PROPERTY_NAME_GLANCE_ID] = os_image_id
+            builder.base_image.update(100, 'COMPLETE', 'Image stored in glance with id (%s)' % os_image_id)
         else:
             exc_msg = 'Nova Image Builder failed to return a Glance ID, failing...'
+            builder.base_image.update(status='FAILED', error=exc_msg)
             self.log.exception(exc_msg)
             raise ImageFactoryException(exc_msg)
 
     def create_target_image(self, builder, target, base_image, parameters):
-        #self.log.info('create_target_image() called for Nova plugin - creating a TargetImage')
         self.log.info('create_target_image() called for Nova plugin - creating TargetImage')
+        base_img_path = base_image.data
+        target_img_path = builder.target_image.data
+
+        builder.target_image.update(5, 'PENDING', 'Copying base image...')
+        if os.path.exists(base_img_path) and os.path.getsize(base_img_path):
+            try:
+                shutil.copyfile(base_img_path, target_img_path)
+            except IOError as e:
+                builder.target_image.update(status='FAILED', error='Error copying base image: %s' % e)
+                self.log.exception(e)
+                raise e
+        else:
+            glance_id = base_image.properties[PROPERTY_NAME_GLANCE_ID]
+            base_img_file = StackEnvironment().download_image_from_glance(glance_id)
+            with open(builder.target_image.data, 'wb') as target_img_file:
+                shutil.copyfileobj(base_img_file, target_img_file)
+            base_img_file.close()
 
     def add_cloud_plugin_content(self, content):
         self.log.info('add_cloud_plugin_content() currently unsupported')
-
-    def _cached_image(self, os_image_id):
-        #TODO: check for previously downloaded image, open it, and return the file object
-        image_file = StackEnvironment().download_image_from_glance(os_image_id)
-        return image_file
