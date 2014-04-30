@@ -34,6 +34,7 @@ class Nova(object):
         self.app_config = ApplicationConfiguration().configuration
         self.log = logging.getLogger('%s.%s' % (__name__, self.__class__.__name__))
         self.nib = None
+        self._cloud_plugin_content = []
 
     def abort(self):
         if self.nib and isinstance(self.nib, NIB):
@@ -106,4 +107,4 @@ class Nova(object):
             base_img_file.close()
 
     def add_cloud_plugin_content(self, content):
-        self.log.info('add_cloud_plugin_content() currently unsupported')
+        self._cloud_plugin_content.append(content)
